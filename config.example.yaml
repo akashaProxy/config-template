@@ -1,0 +1,227 @@
+# 文档：https://wiki.metacubex.one/
+#预设字段
+#--------------------
+pr: &pr {type: select, interval: 3600, health-check: {enable: true, url: "https://www.gstatic.com/generate_204", timeout: 1000}, include-all: true, exclude-type: "ss|vmess"}
+autotest: &autotest {type: url-test, interval: 300, tolerance: 200, health-check: {enable: true, url: "https://www.gstatic.com/generate_204", interval: 120, timeout: 1000}, include-all: true, hidden: true, exclude-filter: "(?i)(2x|3x|5x|10x|20x|30x|50x)", exclude-type: "ss|vmess"}
+ip: &ip {type: http, interval: 86400, behavior: ipcidr}
+domain: &domain {type: http, interval: 86400, behavior: domain}
+classical: &classical {type: http, interval: 86400, behavior: classical}
+
+p: &p {type: http, interval: 3600, health-check: {enable: true, url: "https://www.gstatic.com/generate_204", interval: 300}}
+# 默认策略组选择列表
+group: &group {type: select, proxies: [国内分流,自建,香港,台湾,日本,新加坡,美国,全部节点]}
+# 分流策略组选择列表
+groups: &groups {type: select, proxies: [默认,自动选择,国内分流,屏蔽,香港,台湾,日本,新加坡,美国,全部节点]}
+#--------------------
+
+proxy-providers:
+  provider1: #代理组名称
+    <<: *p
+    url: "https://example.com/config.yaml" # 链接
+    # path: ./proxy_providers/provider1.yaml # 配置文件保存路径
+    override:
+      additional-prefix: "[provider1]" # 添加前缀方便识别
+
+
+tproxy-port: 7890 # tproxy端口
+allow-lan: true # 允许局域网连接
+bind-address: '*' # 绑定所有网卡
+mode: rule # 规则模式
+ipv6: true # 启用ipv6
+log-level: info # 日志等级
+
+external-controller: 127.0.0.1:9090 #仅允许本地访问API
+external-ui: zashboard #使用zashboard为本地管理ui
+external-ui-url: "https://ghfast.top/https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip"
+secret: "" #API访问密钥
+
+unified-delay: true #统一延迟
+tcp-concurrent: true #TCP并发
+find-process-mode: strict #进程匹配模式
+
+profile:
+  store-selected: true
+  # 储存 API 对策略组的选择，以供下次启动时使用
+  store-fake-ip: true
+  # 储存 fakeip 映射表，域名再次发生连接时，使用原有映射地址
+
+geox-url:
+  geoip: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.dat"
+  geosite: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"
+  mmdb: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb"
+  asn: "https://github.com/xishang0128/geoip/releases/download/latest/GeoLite2-ASN.mmdb"
+geo-auto-update: true
+geo-update-interval: 24
+
+#sni嗅探
+sniffer:
+  enable: true
+  sniff:
+    HTTP:
+      ports: [80, 8080-8880]
+      override-destination: true
+    TLS:
+      ports: [443, 8443]
+    QUIC:
+      ports: [443, 8443]
+  skip-domain:
+    - Mijia Cloud
+    - "+.push.apple.com"
+
+# tun虚拟网卡设置
+tun:
+  enable: false #是否启用tun
+  stack: mixed
+  auto-route: true # 自动添加路由
+  strict-route: true # 严格路由模式
+  endpoint-independent-nat: true # 启用端点独立 NAT
+  auto-redirect: true # 自动重定向流量到 TUN 设备
+  auto-detect-interface: true # 自动检测网络接口
+  dns-hijack:  # 劫持dns端口
+    - any:53
+  
+hosts: # 预设dns服务器ip
+  doh.pub: [1.12.12.21, 120.53.53.53, 1.12.12.12]
+  dot.pub: [1.12.12.21, 120.53.53.53, 1.12.12.12]
+  "*.alidns.com": [223.5.5.5, 223.6.6.6, 2400:3200::1, 2400:3200:baba::1]
+  dns.google: [8.8.8.8, 8.8.4.4, 2001:4860:4860::8888, 2001:4860:4860::8844]
+  cloudflare-dns.com: [1.1.1.1, 1.0.0.1, 2606:4700:4700::1111, 2606:4700:4700::1001]
+
+dns:
+  enable: true
+  listen: 0.0.0.0:1053
+  cache-algorithm: arc # DNS 缓存算法
+  ipv6: false # 启用 IPv6 解析
+  respect-rules: true # 遵循分流规则
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter-mode: blacklist
+  fake-ip-filter:
+    - "rule-set:private"
+    - "rule-set:googlefcm"
+    - "rule-set:fake-ip-filter"
+    - "rule-set:connectivity-check"
+    - "rule-set:geolocation-cn"
+    - "rule-set:geolocation-!cn@cn"
+  default-nameserver:
+    - https://1.12.12.21/dns-query
+    - https://223.5.5.5/dns-query
+  nameserver:
+    - https://dns.google/dns-query
+    - https://cloudflare-dns.com/dns-query
+  proxy-server-nameserver:
+    - https://dns.alidns.com/dns-query
+    - https://doh.pub/dns-query
+  nameserver-policy:
+    "rule-set:geolocation-cn,private,geolocation-!cn@cn":
+      - https://dot.pub/dns-query
+      - https://dns.alidns.com/dns-query
+
+
+proxies:
+#这里可以填单个出站代理
+
+
+# 代理组
+proxy-groups:
+  - {name: 默认, <<: *group}
+  - {name: 国内分流, type: select, proxies: [DIRECT, 国内]}
+  - {name: 屏蔽, type: select, proxies: [REJECT-DROP, REJECT]}
+
+  - {name: AI,  <<: *groups}
+  - {name: crypto,  <<: *groups}
+    
+  - {name: 国内,<<: *pr, proxies: [国内自动选择], filter: "(?i)(🇨🇳|中国|cn\\s+|china)", exclude-filter: "(?i)(.🇹🇼|台湾|tw|taiwan|TW)"}
+  - {name: 香港,<<: *pr, proxies: [香港自动选择], filter: "(?i)(🇭🇰|香港|hk\\s+|hongkong|hong kong)"}
+  - {name: 澳门,<<: *pr, proxies: [澳门自动选择], filter: "(?i)(🇲🇴|澳门|mo\\s+|macao)"}
+  - {name: 台湾,<<: *pr, proxies: [台湾自动选择], filter: "(?i)(🇹🇼|台湾|tw\\s+|taiwan)"}
+  - {name: 日本,<<: *pr, proxies: [日本自动选择], filter: "(?i)(🇯🇵|日本|jp\\s+|japan)"}
+  - {name: 美国,<<: *pr, proxies: [美国自动选择], filter: "(?i)(🇺🇸|美国|us\\s+|unitedstates|united states)"}
+  - {name: 英国,<<: *pr, proxies: [英国自动选择], filter: "(?i)(🇬🇧|英国|uk\\s+|england|united kingdom)"}
+  - {name: 德国,<<: *pr, proxies: [德国自动选择], filter: "(?i)(🇩🇪|德国|de\\s+|germany)"}
+  - {name: 新加坡,<<: *pr, proxies: [新加坡自动选择], filter: "(?i)(🇸🇬|新加坡|sg\\s+|singapore)"}
+
+  - {name: 全部节点, proxies: [自动选择], <<: *pr}
+  - {name: 国内自动选择, <<: *autotest, filter: "(?i)(🇨🇳|中国|cn\\s+|china)", exclude-filter: "(?i)(.🇹🇼|台湾|tw|taiwan|2x|3x|5x|10x|20x|30x|50x)"}
+  - {name: 香港自动选择, <<: *autotest, filter: "(?i)(🇭🇰|香港|hk\\s+|hongkong|hong kong)"}
+  - {name: 澳门自动选择, <<: *autotest, filter: "(?i)(🇲🇴|澳门|mo\\s+|macao)"}
+  - {name: 台湾自动选择, <<: *autotest, filter: "(?i)(🇹🇼|台湾|tw\\s+|taiwan)"}
+  - {name: 日本自动选择, <<: *autotest, filter: "(?i)(🇯🇵|日本|jp\\s+|japan)"}
+  - {name: 美国自动选择, <<: *autotest, filter: "(?i)(🇺🇸|美国|us\\s+|unitedstates|united states)"}
+  - {name: 英国自动选择, <<: *autotest, filter: "(?i)(🇬🇧|英国|uk\\s+|England|united kingdom)"}
+  - {name: 德国自动选择, <<: *autotest, filter: "(?i)(🇩🇪|德国|de\\s+|germany)"}
+  - {name: 新加坡自动选择, <<: *autotest, filter: "(?i)(🇸🇬|新加坡|sg\\s+|singapore)"}
+  - {name: 自动选择, <<: *autotest}
+
+# 分流规则提供(订阅)组
+rule-providers:
+  private:
+    <<: *domain
+    format: mrs
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.mrs"
+  google:
+    <<: *domain
+    format: mrs
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.mrs"
+  googlefcm:
+    <<: *domain
+    format: mrs
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/googlefcm.mrs"
+  connectivity-check:
+    <<: *domain
+    format: mrs
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/connectivity-check.mrs"
+  category-cryptocurrency:
+    <<: *domain
+    format: mrs
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-cryptocurrency.mrs"
+  category-ai-!cn:
+    <<: *domain
+    format: mrs
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ai-!cn.mrs"
+  cn_ip:
+    <<: *ip
+    format: mrs
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cn.mrs"
+  private_ip:
+    <<: *ip
+    format: mrs
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/private.mrs"
+  category-ads-all:
+    <<: *domain
+    format: text
+    url: "https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/reject-list.txt"
+  fake-ip-filter:
+    <<: *domain
+    format: text
+    url: "https://cdn.jsdelivr.net/gh/juewuy/ShellCrash@dev/public/fake_ip_filter.list"
+  geolocation-!cn@cn:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/zydou/domain-list-community-converter/clash/geolocation-!cn@cn.yml"
+  geolocation-cn:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/zydou/domain-list-community-converter/clash/geolocation-cn.yml"
+  geolocation-cn@!cn:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/zydou/domain-list-community-converter/clash/geolocation-cn@!cn.yml"
+  秋风广告规则:
+    <<: *classical
+    url: "https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Clash-Classical.yaml"
+
+# 路由规则
+rules:
+# 不依赖geosite使其最大兼容性
+  - RULE-SET,category-ads-all,REJECT-DROP # 去广告
+  - RULE-SET,秋风广告规则,REJECT-DROP # 去广告
+  - RULE-SET,category-ai-!cn,AI #中国大陆地区以外的ai分流
+  - RULE-SET,category-cryptocurrency,crypto # 加密货币分流
+  - RULE-SET,private,国内分流 # 私有地址域名分流
+  - RULE-SET,googlefcm,国内分流 # 放行fcm直连 防止重启mihomo时fcm断流
+  - RULE-SET,google,默认 # Google的域名在中国大陆可用性不高
+  - RULE-SET,geolocation-!cn@cn,国内分流 # 解决原版geosite的冲突问题 via: https://www.aloxaf.com/2025/04/how_to_use_geosite
+  - RULE-SET,geolocation-cn@!cn,默认 # Loyalsoldier/v2ray-rules-dat不支持这个写法，并且会有遗漏
+  - RULE-SET,geolocation-cn,国内分流
+  - RULE-SET,private_ip,国内分流,no-resolve
+  - RULE-SET,cn_ip,国内分流
+  - MATCH,默认
+
